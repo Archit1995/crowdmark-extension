@@ -1,16 +1,13 @@
-// Background Service Worker
-// Handles OCR processing and coordination
-
+// Background Service Worker - Message Router
 class BackgroundProcessor {
     constructor() {
         this.init();
     }
     
     init() {
-        // Listen for messages from content script
         chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             this.handleMessage(request, sender, sendResponse);
-            return true; // Keep message channel open for async response
+            return true;
         });
         
         console.log('Background processor initialized');
@@ -18,14 +15,21 @@ class BackgroundProcessor {
     
     async handleMessage(request, sender, sendResponse) {
         try {
-            switch (request.action) {
-                case 'processOCR':
-                    const result = await this.processOCR(request.data);
-                    sendResponse(result);
-                    break;
-                    
-                default:
-                    sendResponse({ error: 'Unknown action' });
+            if (request.action === 'forwardToTab') {
+                // Forward message from popup to content script
+                const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+                
+                chrome.tabs.sendMessage(tab.id, request.tabMessage, (response) => {
+                    if (chrome.runtime.lastError) {
+                        sendResponse({ error: chrome.runtime.lastError.message });
+                    } else {
+                        sendResponse(response);
+                    }
+                });
+                
+            } else if (request.action === 'processOCR') {
+                const result = await this.processOCR(request.data);
+                sendResponse(result);
             }
         } catch (error) {
             console.error('Background error:', error);
@@ -34,44 +38,25 @@ class BackgroundProcessor {
     }
     
     async processOCR(imageData) {
-        try {
-            // For now, we'll simulate OCR processing
-            // In the next step, we'll integrate Tesseract.js
-            
-            console.log('Processing OCR for image:', imageData.width, 'x', imageData.height);
-            
-            // Simulate processing delay
-            await new Promise(resolve => setTimeout(resolve, 2000));
-            
-            // TODO: Replace with actual Tesseract.js integration
-            const simulatedText = `
-            Crowdmark Document #${imageData.documentNumber}
-            Student Information:
-            Name: Sarah Johnson
-            Student ID: 987654321
-            Phone: (416) 555-0123
-            
-            Emergency Contact:
-            Name: Mike Johnson
-            ID: 123456789
-            Phone: (416) 555-9876
-            `;
-            
-            return {
-                success: true,
-                text: simulatedText,
-                confidence: 85.5,
-                processingTime: 2000
-            };
-            
-        } catch (error) {
-            return {
-                success: false,
-                error: error.message
-            };
-        }
+        // OCR processing (same as before)
+        console.log('Processing OCR for image:', imageData.width, 'x', imageData.height);
+        
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        const simulatedText = `
+        Crowdmark Document #${imageData.documentNumber}
+        Name: Sarah Johnson
+        Student ID: 987654321
+        Phone: (416) 555-0123
+        `;
+        
+        return {
+            success: true,
+            text: simulatedText,
+            confidence: 85.5,
+            processingTime: 2000
+        };
     }
 }
 
-// Initialize background processor
 new BackgroundProcessor();
