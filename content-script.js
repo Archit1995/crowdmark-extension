@@ -9,6 +9,14 @@ class CrowdmarkProcessor {
     }
     
     init() {
+            if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.onMessage) {
+                chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+                this.handleMessage(request, sender, sendResponse);
+                return true;
+            });
+            } else {
+            console.log('Chrome runtime not available, extension APIs limited');
+            }
         // console.log('Crowdmark processor initialized');
         // this.addStatusIndicator();
         
@@ -17,6 +25,8 @@ class CrowdmarkProcessor {
         //     this.handleMessage(request, sender, sendResponse);
         //     return true; // Keep message channel open for async response
         // });
+        // We do not have access to chrome.runtime therefore this method doesn't work
+        
     }
     
     addStatusIndicator() {

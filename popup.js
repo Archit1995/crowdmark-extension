@@ -121,8 +121,11 @@ class PopupController {
     sendMessageToTab(message) {
         return new Promise(async (resolve, reject) => {
             try {
-                const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-                chrome.tabs.sendMessage(tab.id, message, (response) => {
+                // Send message through background script instead
+                chrome.runtime.sendMessage({
+                    action: 'forwardToTab',
+                    tabMessage: message
+                }, (response) => {
                     if (chrome.runtime.lastError) {
                         reject(new Error(chrome.runtime.lastError.message));
                     } else {
@@ -134,8 +137,6 @@ class PopupController {
             }
         });
     }
-}
-
 // Initialize popup when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
     new PopupController();
