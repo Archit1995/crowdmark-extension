@@ -1,4 +1,4 @@
-// Popup script
+// Popup script - Fixed version
 class PopupController {
     constructor() {
         this.init();
@@ -137,6 +137,8 @@ class PopupController {
             }
         });
     }
+}
+
 // Initialize popup when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
     new PopupController();
