@@ -1,10 +1,13 @@
 // Background Service Worker - Message Router
+console.log('=== BACKGROUND SCRIPT STARTING ===');
 class BackgroundProcessor {
     constructor() {
+        console.log('BackgroundProcessor constructor called');
         this.init();
     }
     
     init() {
+        console.log('BackgroundProcessor init() called');
         chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             this.handleMessage(request, sender, sendResponse);
             return true;
@@ -58,5 +61,6 @@ class BackgroundProcessor {
         };
     }
 }
-
+console.log('About to create BackgroundProcessor instance');
 new BackgroundProcessor();
+console.log('BackgroundProcessor instance created');
