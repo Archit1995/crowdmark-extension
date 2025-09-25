@@ -1,0 +1,33 @@
+{
+    "manifest_version": 3,
+    "name": "Crowdmark Document Processor",
+    "version": "1.0.0",
+    "description": "Automate handwritten document processing on Crowdmark",
+    
+    "permissions": [
+        "activeTab",
+        "storage"
+    ],
+    
+    "host_permissions": [
+        "https://app.crowdmark.com/*",
+        "https://assets.crowdmark.com/*"
+    ],
+    
+    "content_scripts": [
+        {
+            "matches": ["https://app.crowdmark.com/exams/*/match/matcher*"],
+            "js": ["content-script.js"],
+            "run_at": "document_idle"
+        }
+    ],
+    
+    "background": {
+        "service_worker": "background.js"
+    },
+    
+    "action": {
+        "default_popup": "popup.html",
+        "default_title": "Process Documents"
+    }
+}

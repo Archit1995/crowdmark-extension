@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+    <div class="popup-container">
+        <h2>📄 Crowdmark Processor</h2>
+        
+        <div id="status" class="status-section">
+            <div class="status-indicator" id="statusIndicator">⚡ Checking page...</div>
+        </div>
+        
+        <div class="controls-section">
+            <button id="processBtn" class="primary-button" disabled>
+                Process Current Document
+            </button>
+            
+            <button id="extractBtn" class="secondary-button" disabled>
+                Extract Image Only
+            </button>
+        </div>
+        
+        <div id="results" class="results-section" style="display: none;">
+            <h3>Results</h3>
+            <div id="resultsContent"></div>
+        </div>
+        
+        <div class="info-section">
+            <p><strong>Instructions:</strong></p>
+            <ol>
+                <li>Navigate to a Crowdmark document page</li>
+                <li>Click "Process Current Document"</li>
+                <li>Extension will extract and process the document</li>
+                <li>Review results and continue to next document</li>
+            </ol>
+        </div>
+    </div>
+    
+    <script src="popup.js"></script>
+</body>
+</html>
