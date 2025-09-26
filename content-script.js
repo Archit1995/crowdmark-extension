@@ -69,49 +69,104 @@ init() {
         }
     }
     
+    // async extractDocumentImage() {
+    //     const imgElement = document.querySelector(this.imageSelector);
+        
+    //     if (!imgElement) {
+    //         throw new Error('Document image not found');
+    //     }
+        
+    //     // Wait for image to load if not already loaded
+    //     if (!imgElement.complete) {
+    //         await this.waitForImageLoad(imgElement);
+    //     }
+        
+    //     // Create canvas and extract image data
+    //     const canvas = document.createElement('canvas');
+    //     const ctx = canvas.getContext('2d');
+        
+    //     try {
+    //         // Set canvas size to match image
+    //         canvas.width = imgElement.naturalWidth;
+    //         canvas.height = imgElement.naturalHeight;
+            
+    //         // Draw image to canvas
+    //         ctx.drawImage(imgElement, 0, 0);
+            
+    //         // Apply OCR preprocessing
+    //         ctx.filter = 'contrast(130%) brightness(110%) saturate(0%)';
+    //         ctx.drawImage(imgElement, 0, 0);
+    //         ctx.filter = 'none';
+            
+    //         return {
+    //             success: true,
+    //             dataURL: canvas.toDataURL('image/png'),
+    //             width: canvas.width,
+    //             height: canvas.height,
+    //             documentNumber: this.getCurrentDocumentNumber(),
+    //             timestamp: Date.now()
+    //         };
+            
+    //     } catch (error) {
+    //         throw new Error(`Image extraction failed: ${error.message}`);
+    //     }
+    // }
+
+
+    // cross origin method
+
     async extractDocumentImage() {
-        const imgElement = document.querySelector(this.imageSelector);
-        
-        if (!imgElement) {
-            throw new Error('Document image not found');
-        }
-        
-        // Wait for image to load if not already loaded
-        if (!imgElement.complete) {
-            await this.waitForImageLoad(imgElement);
-        }
-        
-        // Create canvas and extract image data
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        
-        try {
-            // Set canvas size to match image
-            canvas.width = imgElement.naturalWidth;
-            canvas.height = imgElement.naturalHeight;
-            
-            // Draw image to canvas
-            ctx.drawImage(imgElement, 0, 0);
-            
-            // Apply OCR preprocessing
-            ctx.filter = 'contrast(130%) brightness(110%) saturate(0%)';
-            ctx.drawImage(imgElement, 0, 0);
-            ctx.filter = 'none';
-            
-            return {
-                success: true,
-                dataURL: canvas.toDataURL('image/png'),
-                width: canvas.width,
-                height: canvas.height,
-                documentNumber: this.getCurrentDocumentNumber(),
-                timestamp: Date.now()
-            };
-            
-        } catch (error) {
-            throw new Error(`Image extraction failed: ${error.message}`);
-        }
+    const imgElement = document.querySelector(this.imageSelector);
+    
+    if (!imgElement) {
+        throw new Error('Document image not found');
     }
     
+    // Wait for image to load
+    if (!imgElement.complete) {
+        await this.waitForImageLoad(imgElement);
+    }
+    
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    
+    try {
+        canvas.width = imgElement.naturalWidth;
+        canvas.height = imgElement.naturalHeight;
+        
+        // Try to handle cross-origin by creating a new image
+        const corsImage = new Image();
+        corsImage.crossOrigin = 'anonymous';
+        
+        await new Promise((resolve, reject) => {
+            corsImage.onload = resolve;
+            corsImage.onerror = reject;
+            corsImage.src = imgElement.src;
+        });
+        
+        // Draw the CORS-enabled image
+        ctx.drawImage(corsImage, 0, 0);
+        
+        // Apply preprocessing
+        ctx.filter = 'contrast(130%) brightness(110%) saturate(0%)';
+        ctx.drawImage(corsImage, 0, 0);
+        ctx.filter = 'none';
+        
+        return {
+            success: true,
+            dataURL: canvas.toDataURL('image/png'),
+            width: canvas.width,
+            height: canvas.height,
+            documentNumber: this.getCurrentDocumentNumber(),
+            timestamp: Date.now()
+        };
+        
+    } catch (error) {
+        throw new Error(`Canvas extraction failed: ${error.message}`);
+    }
+}
+
+
     waitForImageLoad(imgElement) {
         return new Promise((resolve, reject) => {
             if (imgElement.complete) {
