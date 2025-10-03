@@ -1,19 +1,18 @@
-// Popup script - Fixed version
 class PopupController {
     constructor() {
         this.init();
     }
     
     async init() {
-        this.processBtn = document.getElementById('processBtn');
-        this.extractBtn = document.getElementById('extractBtn');
+        this.processFullBtn = document.getElementById('processFullBtn');
+        this.processROIBtn = document.getElementById('processROIBtn');
         this.statusIndicator = document.getElementById('statusIndicator');
         this.resultsDiv = document.getElementById('results');
         this.resultsContent = document.getElementById('resultsContent');
         
         // Set up event listeners
-        this.processBtn.addEventListener('click', () => this.processDocument());
-        this.extractBtn.addEventListener('click', () => this.extractImage());
+        this.processFullBtn.addEventListener('click', () => this.processFullDocument());
+        this.processROIBtn.addEventListener('click', () => this.processWithROI());
         
         // Check if we're on a valid page
         await this.checkPageStatus();
@@ -33,8 +32,8 @@ class PopupController {
             
             if (response && response.hasImage) {
                 this.updateStatus(`Ready - Document #${response.documentNumber}`, 'ready');
-                this.processBtn.disabled = false;
-                this.extractBtn.disabled = false;
+                this.processFullBtn.disabled = false;
+                this.processROIBtn.disabled = false;
             } else {
                 this.updateStatus('No document image found', 'error');
             }
@@ -44,15 +43,15 @@ class PopupController {
         }
     }
     
-    async processDocument() {
+    async processFullDocument() {
         try {
-            this.updateStatus('Processing document...', 'processing');
-            this.processBtn.disabled = true;
-            this.extractBtn.disabled = true;
+            this.updateStatus('Processing entire document...', 'processing');
+            this.processFullBtn.disabled = true;
+            this.processROIBtn.disabled = true;
             this.resultsDiv.style.display = 'none';
             
             const response = await this.sendMessageToTab({ 
-                action: 'processCurrentDocument' 
+                action: 'processFullDocument' 
             });
             
             if (response && response.success) {
@@ -65,23 +64,27 @@ class PopupController {
         } catch (error) {
             this.updateStatus(`Error: ${error.message}`, 'error');
         } finally {
-            this.processBtn.disabled = false;
-            this.extractBtn.disabled = false;
+            this.processFullBtn.disabled = false;
+            this.processROIBtn.disabled = false;
         }
     }
     
-    async extractImage() {
+    async processWithROI() {
         try {
-            this.updateStatus('Extracting image...', 'processing');
-            this.extractBtn.disabled = true;
+            this.updateStatus('Select area to process...', 'processing');
+            this.processFullBtn.disabled = true;
+            this.processROIBtn.disabled = true;
+            this.resultsDiv.style.display = 'none';
             
             const response = await this.sendMessageToTab({ 
-                action: 'extractImage' 
+                action: 'processWithROI' 
             });
             
             if (response && response.success) {
-                this.updateStatus('Image extracted successfully!', 'ready');
-                this.showImageResults(response);
+                this.updateStatus('Selected area processed successfully!', 'ready');
+                this.showResults(response);
+            } else if (response && response.cancelled) {
+                this.updateStatus('Selection cancelled', 'ready');
             } else {
                 throw new Error(response ? response.error : 'Unknown error');
             }
@@ -89,26 +92,18 @@ class PopupController {
         } catch (error) {
             this.updateStatus(`Error: ${error.message}`, 'error');
         } finally {
-            this.extractBtn.disabled = false;
+            this.processFullBtn.disabled = false;
+            this.processROIBtn.disabled = false;
         }
     }
     
     showResults(data) {
         this.resultsContent.innerHTML = `
             <strong>Document #${data.documentNumber}</strong><br>
+            <strong>Processing Type:</strong> ${data.processingType}<br>
             <strong>Names:</strong> ${data.extractedData.names.join(', ') || 'None found'}<br>
             <strong>IDs:</strong> ${data.extractedData.ids.join(', ') || 'None found'}<br>
             <strong>OCR Confidence:</strong> ${data.ocrConfidence}%
-        `;
-        this.resultsDiv.style.display = 'block';
-    }
-    
-    showImageResults(data) {
-        this.resultsContent.innerHTML = `
-            <strong>Image Extracted:</strong><br>
-            <strong>Size:</strong> ${data.width} × ${data.height}<br>
-            <strong>Document:</strong> #${data.documentNumber}<br>
-            <strong>Status:</strong> Ready for OCR processing
         `;
         this.resultsDiv.style.display = 'block';
     }
@@ -121,7 +116,6 @@ class PopupController {
     sendMessageToTab(message) {
         return new Promise(async (resolve, reject) => {
             try {
-                // Send message through background script instead
                 chrome.runtime.sendMessage({
                     action: 'forwardToTab',
                     tabMessage: message
@@ -137,6 +131,61 @@ class PopupController {
             }
         });
     }
+// Add to popup.js - enhanced processFullDocument method
+async processFullDocument() {
+    try {
+        this.updateStatus('Extracting image...', 'processing');
+        this.processFullBtn.disabled = true;
+        this.processROIBtn.disabled = true;
+        this.resultsDiv.style.display = 'none';
+        
+        // Send with progress tracking
+        const response = await this.sendMessageToTabWithProgress({ 
+            action: 'processFullDocument' 
+        });
+        
+        if (response && response.success) {
+            this.updateStatus('Document processed successfully!', 'ready');
+            this.showResults(response);
+        } else {
+            throw new Error(response ? response.error : 'Unknown error');
+        }
+        
+    } catch (error) {
+        this.updateStatus(`Error: ${error.message}`, 'error');
+    } finally {
+        this.processFullBtn.disabled = false;
+        this.processROIBtn.disabled = false;
+    }
+}
+
+// Enhanced results display
+showResults(data) {
+    const { extractedData } = data;
+    
+    this.resultsContent.innerHTML = `
+        <strong>Document #${data.documentNumber}</strong><br>
+        <strong>Processing Type:</strong> ${data.processingType}<br>
+        <strong>Processing Time:</strong> ${data.processingTime || 'N/A'}ms<br>
+        <strong>OCR Confidence:</strong> ${data.ocrConfidence}%<br>
+        <br>
+        <strong>Names Found:</strong><br>
+        ${extractedData.names.length > 0 ? 
+            extractedData.names.map(name => `• ${name}`).join('<br>') : 
+            'None detected'}<br>
+        <br>
+        <strong>IDs Found:</strong><br>
+        ${extractedData.ids.length > 0 ? 
+            extractedData.ids.map(id => `• ${id}`).join('<br>') : 
+            'None detected'}<br>
+        <br>
+        <strong>Phones Found:</strong><br>
+        ${extractedData.phones.length > 0 ? 
+            extractedData.phones.map(phone => `• ${phone}`).join('<br>') : 
+            'None detected'}
+    `;
+    this.resultsDiv.style.display = 'block';
+}
 }
 
 // Initialize popup when DOM is ready

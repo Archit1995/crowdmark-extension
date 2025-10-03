@@ -12,7 +12,8 @@
     
     "host_permissions": [
         "https://app.crowdmark.com/*",
-        "https://assets.crowdmark.com/*"
+        "https://assets.crowdmark.com/*",
+        "http://localhost:5000/*"
     ],
     
     "content_scripts": [

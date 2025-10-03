@@ -13,12 +13,12 @@
         </div>
         
         <div class="controls-section">
-            <button id="processBtn" class="primary-button" disabled>
-                Process Current Document
+            <button id="processFullBtn" class="primary-button" disabled>
+                Process Entire Document
             </button>
             
-            <button id="extractBtn" class="secondary-button" disabled>
-                Extract Image Only
+            <button id="processROIBtn" class="primary-button" disabled>
+                Process Selected Area
             </button>
         </div>
         
@@ -31,8 +31,12 @@
             <p><strong>Instructions:</strong></p>
             <ol>
                 <li>Navigate to a Crowdmark document page</li>
-                <li>Click "Process Current Document"</li>
-                <li>Extension will extract and process the document</li>
+                <li>Choose processing method:
+                    <ul>
+                        <li><strong>Entire Document:</strong> Process full page</li>
+                        <li><strong>Selected Area:</strong> Draw box around specific region</li>
+                    </ul>
+                </li>
                 <li>Review results and continue to next document</li>
             </ol>
         </div>
