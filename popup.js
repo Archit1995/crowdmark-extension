@@ -45,7 +45,7 @@ class PopupController {
     
     async processFullDocument() {
         try {
-            this.updateStatus('Processing entire document...', 'processing');
+            this.updateStatus('Extracting image...', 'processing');
             this.processFullBtn.disabled = true;
             this.processROIBtn.disabled = true;
             this.resultsDiv.style.display = 'none';
@@ -98,12 +98,30 @@ class PopupController {
     }
     
     showResults(data) {
+        const { extractedData } = data;
+        
         this.resultsContent.innerHTML = `
             <strong>Document #${data.documentNumber}</strong><br>
             <strong>Processing Type:</strong> ${data.processingType}<br>
-            <strong>Names:</strong> ${data.extractedData.names.join(', ') || 'None found'}<br>
-            <strong>IDs:</strong> ${data.extractedData.ids.join(', ') || 'None found'}<br>
-            <strong>OCR Confidence:</strong> ${data.ocrConfidence}%
+            <strong>OCR Confidence:</strong> ${data.ocrConfidence}%<br>
+            <br>
+            <strong>Names Found:</strong><br>
+            ${extractedData.names.length > 0 ? 
+                extractedData.names.map(name => `• ${name}`).join('<br>') : 
+                'None detected'}<br>
+            <br>
+            <strong>IDs Found:</strong><br>
+            ${extractedData.ids.length > 0 ? 
+                extractedData.ids.map(id => `• ${id}`).join('<br>') : 
+                'None detected'}<br>
+            <br>
+            <strong>Phones Found:</strong><br>
+            ${extractedData.phones.length > 0 ? 
+                extractedData.phones.map(phone => `• ${phone}`).join('<br>') : 
+                'None detected'}<br>
+            <br>
+            <strong>Raw Text:</strong><br>
+            <pre style="font-size: 11px; background: #f5f5f5; padding: 8px; border-radius: 4px; max-height: 150px; overflow-y: auto;">${extractedData.rawText}</pre>
         `;
         this.resultsDiv.style.display = 'block';
     }
@@ -131,61 +149,6 @@ class PopupController {
             }
         });
     }
-// Add to popup.js - enhanced processFullDocument method
-async processFullDocument() {
-    try {
-        this.updateStatus('Extracting image...', 'processing');
-        this.processFullBtn.disabled = true;
-        this.processROIBtn.disabled = true;
-        this.resultsDiv.style.display = 'none';
-        
-        // Send with progress tracking
-        const response = await this.sendMessageToTabWithProgress({ 
-            action: 'processFullDocument' 
-        });
-        
-        if (response && response.success) {
-            this.updateStatus('Document processed successfully!', 'ready');
-            this.showResults(response);
-        } else {
-            throw new Error(response ? response.error : 'Unknown error');
-        }
-        
-    } catch (error) {
-        this.updateStatus(`Error: ${error.message}`, 'error');
-    } finally {
-        this.processFullBtn.disabled = false;
-        this.processROIBtn.disabled = false;
-    }
-}
-
-// Enhanced results display
-showResults(data) {
-    const { extractedData } = data;
-    
-    this.resultsContent.innerHTML = `
-        <strong>Document #${data.documentNumber}</strong><br>
-        <strong>Processing Type:</strong> ${data.processingType}<br>
-        <strong>Processing Time:</strong> ${data.processingTime || 'N/A'}ms<br>
-        <strong>OCR Confidence:</strong> ${data.ocrConfidence}%<br>
-        <br>
-        <strong>Names Found:</strong><br>
-        ${extractedData.names.length > 0 ? 
-            extractedData.names.map(name => `• ${name}`).join('<br>') : 
-            'None detected'}<br>
-        <br>
-        <strong>IDs Found:</strong><br>
-        ${extractedData.ids.length > 0 ? 
-            extractedData.ids.map(id => `• ${id}`).join('<br>') : 
-            'None detected'}<br>
-        <br>
-        <strong>Phones Found:</strong><br>
-        ${extractedData.phones.length > 0 ? 
-            extractedData.phones.map(phone => `• ${phone}`).join('<br>') : 
-            'None detected'}
-    `;
-    this.resultsDiv.style.display = 'block';
-}
 }
 
 // Initialize popup when DOM is ready
