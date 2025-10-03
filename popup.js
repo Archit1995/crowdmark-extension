@@ -10,11 +10,9 @@ class PopupController {
         this.resultsDiv = document.getElementById('results');
         this.resultsContent = document.getElementById('resultsContent');
         
-        // Set up event listeners
         this.processFullBtn.addEventListener('click', () => this.processFullDocument());
         this.processROIBtn.addEventListener('click', () => this.processWithROI());
         
-        // Check if we're on a valid page
         await this.checkPageStatus();
     }
     
@@ -27,7 +25,6 @@ class PopupController {
                 return;
             }
             
-            // Send message to content script to get page info
             const response = await this.sendMessageToTab({ action: 'getPageInfo' });
             
             if (response && response.hasImage) {
@@ -45,7 +42,7 @@ class PopupController {
     
     async processFullDocument() {
         try {
-            this.updateStatus('Extracting image...', 'processing');
+            this.updateStatus('Processing entire document...', 'processing');
             this.processFullBtn.disabled = true;
             this.processROIBtn.disabled = true;
             this.resultsDiv.style.display = 'none';
@@ -98,26 +95,40 @@ class PopupController {
     }
     
     showResults(data) {
-        const { extractedData } = data;
+        const { extractedData, matchResults } = data;
+        
+        let matchSection = '';
+        if (matchResults) {
+            const matchedList = matchResults.matched.length > 0 
+                ? matchResults.matched.map(id => `✓ ${id}`).join('<br>') 
+                : 'None';
+            const failedList = matchResults.failed.length > 0 
+                ? matchResults.failed.map(id => `✗ ${id}`).join('<br>') 
+                : '';
+            
+            matchSection = `
+                <br>
+                <strong>Auto-Match Results:</strong><br>
+                Matched: ${matchResults.matched.length}/${matchResults.total}<br>
+                ${matchedList}<br>
+                ${failedList ? '<br>Failed:<br>' + failedList + '<br>' : ''}
+            `;
+        }
         
         this.resultsContent.innerHTML = `
             <strong>Document #${data.documentNumber}</strong><br>
             <strong>Processing Type:</strong> ${data.processingType}<br>
             <strong>OCR Confidence:</strong> ${data.ocrConfidence}%<br>
-            <br>
-            <strong>Names Found:</strong><br>
-            ${extractedData.names.length > 0 ? 
-                extractedData.names.map(name => `• ${name}`).join('<br>') : 
-                'None detected'}<br>
+            ${matchSection}
             <br>
             <strong>IDs Found:</strong><br>
             ${extractedData.ids.length > 0 ? 
                 extractedData.ids.map(id => `• ${id}`).join('<br>') : 
                 'None detected'}<br>
             <br>
-            <strong>Phones Found:</strong><br>
-            ${extractedData.phones.length > 0 ? 
-                extractedData.phones.map(phone => `• ${phone}`).join('<br>') : 
+            <strong>Names Found:</strong><br>
+            ${extractedData.names.length > 0 ? 
+                extractedData.names.map(name => `• ${name}`).join('<br>') : 
                 'None detected'}<br>
             <br>
             <strong>Raw Text:</strong><br>
@@ -151,7 +162,6 @@ class PopupController {
     }
 }
 
-// Initialize popup when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
     new PopupController();
 });

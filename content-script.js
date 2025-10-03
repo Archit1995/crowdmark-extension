@@ -34,7 +34,6 @@ class SnippingTool {
             cursor: crosshair;
         `;
         
-        // Create instructions that will hide on hover
         this.instructions = document.createElement('div');
         this.instructions.style.cssText = `
             position: fixed;
@@ -54,7 +53,6 @@ class SnippingTool {
         `;
         this.instructions.innerHTML = 'Draw a box around the area to extract. Press ESC to cancel.';
         
-        // Add hover listeners to instructions
         this.instructions.addEventListener('mouseenter', () => {
             this.instructions.style.opacity = '0.1';
         });
@@ -80,14 +78,12 @@ class SnippingTool {
     }
     
     handleMouseDown(e) {
-        // Don't start selection if clicking on instructions
         if (e.target === this.instructions) return;
         
         this.isSelecting = true;
         this.startPoint = { x: e.clientX, y: e.clientY };
         this.endPoint = { x: e.clientX, y: e.clientY };
         
-        // Hide instructions when starting to draw
         if (this.instructions) {
             this.instructions.style.display = 'none';
         }
@@ -230,7 +226,7 @@ class CrowdmarkProcessor {
                     }).catch(error => {
                         sendResponse({ error: error.message });
                     });
-                    return true; // Keep channel open for async response
+                    return true;
                     
                 case 'getPageInfo':
                     const pageInfo = this.getPageInfo();
@@ -267,6 +263,12 @@ class CrowdmarkProcessor {
             this.updateStatus('OCR complete, parsing data...');
             const parsedData = this.parseDocumentText(ocrResult.text);
             
+            let matchResults = null;
+            if (parsedData.ids.length > 0) {
+                this.updateStatus('Auto-matching students...');
+                matchResults = await this.autoMatchStudents(parsedData.ids);
+            }
+            
             this.updateStatus('Document processed successfully!');
             
             return {
@@ -274,7 +276,8 @@ class CrowdmarkProcessor {
                 documentNumber: this.getCurrentDocumentNumber(),
                 extractedData: parsedData,
                 ocrConfidence: ocrResult.confidence,
-                processingType: 'Full Document'
+                processingType: 'Full Document',
+                matchResults: matchResults
             };
             
         } catch (error) {
@@ -301,7 +304,6 @@ class CrowdmarkProcessor {
             
             snippingTool.activate(imgElement, async (coords) => {
                 if (!coords) {
-                    // User cancelled
                     resolve({ cancelled: true });
                     return;
                 }
@@ -322,14 +324,21 @@ class CrowdmarkProcessor {
                     this.updateStatus('OCR complete, parsing data...');
                     const parsedData = this.parseDocumentText(ocrResult.text);
                     
-                    this.updateStatus('Selected area processed successfully!');
+                    let matchResults = null;
+                    if (parsedData.ids.length > 0) {
+                        this.updateStatus('Auto-matching students...');
+                        matchResults = await this.autoMatchStudents(parsedData.ids);
+                    }
+                    
+                    this.updateStatus('Processing complete!');
                     
                     resolve({
                         success: true,
                         documentNumber: this.getCurrentDocumentNumber(),
                         extractedData: parsedData,
                         ocrConfidence: ocrResult.confidence,
-                        processingType: 'Selected Area'
+                        processingType: 'Selected Area',
+                        matchResults: matchResults
                     });
                     
                 } catch (error) {
@@ -341,6 +350,101 @@ class CrowdmarkProcessor {
                 }
             });
         });
+    }
+    
+    async autoMatchStudents(ids) {
+        console.log('Starting auto-match for IDs:', ids);
+        
+        const results = {
+            matched: [],
+            failed: [],
+            total: ids.length
+        };
+        
+        for (let i = 0; i < ids.length; i++) {
+            const id = ids[i];
+            this.updateStatus(`Matching ${i + 1}/${ids.length}: ${id}`);
+            
+            try {
+                const success = await this.matchSingleStudent(id);
+                if (success) {
+                    results.matched.push(id);
+                } else {
+                    results.failed.push(id);
+                }
+                
+                await this.delay(500);
+                
+            } catch (error) {
+                console.error(`Failed to match ${id}:`, error);
+                results.failed.push(id);
+            }
+        }
+        
+        console.log('Auto-match results:', results);
+        return results;
+    }
+    
+async matchSingleStudent(studentId) {
+    // Use the specific ID selector we found
+    const searchInput = document.querySelector('#input--student-finder');
+    
+    if (!searchInput) {
+        console.error('Search input not found');
+        return false;
+    }
+    
+    // Clear existing search
+    searchInput.value = '';
+    searchInput.focus();
+    searchInput.dispatchEvent(new Event('input', { bubbles: true }));
+    searchInput.dispatchEvent(new Event('change', { bubbles: true }));
+    await this.delay(300);
+    
+    // Enter the student ID
+    searchInput.value = studentId;
+    searchInput.focus();
+    
+    // Trigger multiple events to ensure Ember framework picks it up
+    searchInput.dispatchEvent(new Event('input', { bubbles: true }));
+    searchInput.dispatchEvent(new Event('change', { bubbles: true }));
+    searchInput.dispatchEvent(new KeyboardEvent('keyup', { bubbles: true }));
+    
+    // Wait for search results
+    await this.delay(1200);
+    
+    // Find the checkbox for the matching student
+    // Look for checkboxes that have the student ID in nearby text
+    const allCheckboxes = document.querySelectorAll('input[type="checkbox"]');
+    
+    for (const checkbox of allCheckboxes) {
+        // Get the parent container (could be a div, li, or other element)
+        const container = checkbox.closest('div, li, tr, label');
+        
+        if (container) {
+            const containerText = container.textContent.trim();
+            
+            // Check if this container has the student ID
+            if (containerText.includes(studentId)) {
+                if (!checkbox.checked) {
+                    console.log(`Found matching student: ${studentId}, clicking checkbox`);
+                    checkbox.click();
+                    await this.delay(400);
+                    return true;
+                } else {
+                    console.log(`Student ${studentId} already matched`);
+                    return true;
+                }
+            }
+        }
+    }
+    
+    console.log(`No checkbox found for student: ${studentId}`);
+    return false;
+}
+    
+    delay(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
     }
     
     async extractWithROI(roiCoords) {
@@ -462,78 +566,67 @@ class CrowdmarkProcessor {
         };
     }
     
-parseDocumentText(text) {
-    console.log('Parsing OCR text:', text);
-    
-    const lines = text.split('\n').map(line => line.trim()).filter(line => line);
-    const parsed = {
-        names: [],
-        ids: [],
-        phones: [],
-        rawText: text
-    };
-    
-    // Enhanced patterns for better matching
-    const patterns = {
-        // More flexible name patterns
-        name: /(?:name|student|contact)\s*:?\s*([a-zA-Z\s]{2,30})/gi,
+    parseDocumentText(text) {
+        console.log('Parsing OCR text:', text);
         
-        // ID patterns (various formats)
-        id: /(?:id|student\s*id|number)\s*:?\s*([0-9]{6,12})/gi,
+        const lines = text.split('\n').map(line => line.trim()).filter(line => line);
+        const parsed = {
+            names: [],
+            ids: [],
+            phones: [],
+            rawText: text
+        };
         
-        // Phone patterns (flexible formats)
-        phone: /(?:phone|tel|telephone)\s*:?\s*([\(\)\-\s0-9]{10,20})/gi,
+        const patterns = {
+            name: /(?:name|student|contact)\s*:?\s*([a-zA-Z\s]{2,30})/gi,
+            id: /(?:id|student\s*id|number)\s*:?\s*([0-9]{6,12})/gi,
+            phone: /(?:phone|tel|telephone)\s*:?\s*([\(\)\-\s0-9]{10,20})/gi,
+            nameAlt: /([A-Z][a-z]+\s+[A-Z][a-z]+)(?=\s|$)/g,
+            idAlt: /\b([0-9]{8,12})\b/g
+        };
         
-        // Alternative patterns for when OCR misreads colons
-        nameAlt: /([A-Z][a-z]+\s+[A-Z][a-z]+)(?=\s|$)/g,
-        idAlt: /\b([0-9]{8,12})\b/g
-    };
-    
-    // Process each line
-    for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
-        
-        // Try primary patterns first
-        let match = patterns.name.exec(line);
-        if (match) {
-            const name = match[1].trim();
-            if (name.length > 2 && name.includes(' ')) {
-                parsed.names.push(name);
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i];
+            
+            let match = patterns.name.exec(line);
+            if (match) {
+                const name = match[1].trim();
+                if (name.length > 2 && name.includes(' ')) {
+                    parsed.names.push(name);
+                    continue;
+                }
+            }
+            
+            match = patterns.id.exec(line);
+            if (match) {
+                parsed.ids.push(match[1].trim());
+                continue;
+            }
+            
+            match = patterns.phone.exec(line);
+            if (match) {
+                parsed.phones.push(match[1].trim());
                 continue;
             }
         }
         
-        match = patterns.id.exec(line);
-        if (match) {
-            parsed.ids.push(match[1].trim());
-            continue;
+        if (parsed.names.length === 0) {
+            const nameMatches = text.match(patterns.nameAlt);
+            if (nameMatches) {
+                parsed.names = nameMatches.slice(0, 5);
+            }
         }
         
-        match = patterns.phone.exec(line);
-        if (match) {
-            parsed.phones.push(match[1].trim());
-            continue;
+        if (parsed.ids.length === 0) {
+            const idMatches = text.match(patterns.idAlt);
+            if (idMatches) {
+                parsed.ids = idMatches.slice(0, 5);
+            }
         }
+        
+        console.log('Parsed data:', parsed);
+        return parsed;
     }
-    
-    // If primary patterns didn't find much, try alternative patterns
-    if (parsed.names.length === 0) {
-        const nameMatches = text.match(patterns.nameAlt);
-        if (nameMatches) {
-            parsed.names = nameMatches.slice(0, 5); // Limit to reasonable number
-        }
-    }
-    
-    if (parsed.ids.length === 0) {
-        const idMatches = text.match(patterns.idAlt);
-        if (idMatches) {
-            parsed.ids = idMatches.slice(0, 5);
-        }
-    }
-    
-    console.log('Parsed data:', parsed);
-    return parsed;
-}
     
     updateStatus(message, type = 'info') {
         const indicator = document.getElementById('crowdmark-processor-status');
@@ -556,7 +649,6 @@ parseDocumentText(text) {
     }
 }
 
-// Initialize when page loads
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
         new CrowdmarkProcessor();
