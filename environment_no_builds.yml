@@ -1,0 +1,5 @@
+name: your_env_name
+channels:
+dependencies:
+
+prefix: "/home/archit/anaconda3/envs/your_env_name"
