@@ -1,0 +1,108 @@
+.popup-container {
+    width: 350px;
+    padding: 16px;
+    font-family: Arial, sans-serif;
+}
+
+h2 {
+    margin: 0 0 16px 0;
+    color: #333;
+    font-size: 18px;
+}
+
+.status-section {
+    margin-bottom: 16px;
+    padding: 12px;
+    background: #f8f9fa;
+    border-radius: 4px;
+    border: 1px solid #dee2e6;
+}
+
+.status-indicator {
+    font-weight: bold;
+}
+
+.status-indicator.ready {
+    color: #28a745;
+}
+
+.status-indicator.processing {
+    color: #007bff;
+}
+
+.status-indicator.error {
+    color: #dc3545;
+}
+
+.controls-section {
+    margin-bottom: 16px;
+}
+
+.primary-button {
+    width: 100%;
+    padding: 12px;
+    background: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    margin-bottom: 8px;
+}
+
+.primary-button:hover:not(:disabled) {
+    background: #0056b3;
+}
+
+.primary-button:disabled {
+    background: #6c757d;
+    cursor: not-allowed;
+}
+
+.secondary-button {
+    width: 100%;
+    padding: 10px;
+    background: #6c757d;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+}
+
+.secondary-button:hover:not(:disabled) {
+    background: #5a6268;
+}
+
+.secondary-button:disabled {
+    background: #adb5bd;
+    cursor: not-allowed;
+}
+
+.results-section {
+    margin-top: 16px;
+    padding: 12px;
+    background: #d4edda;
+    border: 1px solid #c3e6cb;
+    border-radius: 4px;
+}
+
+.results-section h3 {
+    margin: 0 0 8px 0;
+    font-size: 14px;
+}
+
+.info-section {
+    margin-top: 16px;
+    font-size: 12px;
+    color: #6c757d;
+}
+
+.info-section ol {
+    margin: 8px 0;
+    padding-left: 16px;
+}
+
+.info-section li {
+    margin-bottom: 4px;
+}

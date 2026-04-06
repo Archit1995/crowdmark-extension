@@ -1,0 +1,20 @@
+name: blackwell_trocr
+channels:
+  - conda-forge
+  - pytorch-nightly
+  - defaults
+dependencies:
+  - python=3.11
+  - pip
+  - pip:
+      - flask==3.1.2
+      - pillow==11.3.0
+      - transformers[torch]>=4.48.0
+      - optimum[onnxruntime-gpu]>=1.23.0
+      - onnx>=1.17.0
+      - sentencepiece
+      - --extra-index-url https://download.pytorch.org/whl/nightly/cu128
+      - torch
+      - torchvision
+      - torchaudio
+      - nvidia-cudnn-cu12>=9.19.0

@@ -1,0 +1,186 @@
+# Chrome Extension - Student ID Matcher & Grading Automation
+# Manifest for development environment setup
+
+project:
+  name: crowdmark-student-matcher
+  version: 1.0.0
+  description: Automated student ID matching and document processing for Crowdmark
+  author: Archit
+  license: MIT
+
+environments:
+  development:
+    python_version: "3.8+"
+    node_version: "16+"
+    gpu_required: true
+    cuda_version: "11.0+"
+    
+  production:
+    deployment_target: chrome_extension
+    backend_service: flask
+    ocr_service: paddleocr_gpu
+
+dependencies:
+  python:
+    core:
+      - paddleocr>=2.6.0
+      - paddlepaddle-gpu>=2.4.0
+      - flask>=2.0.0
+      - flask-cors>=3.0.0
+      - pillow>=9.0.0
+      - numpy>=1.21.0
+    
+    optional:
+      - tensorflow>=2.8.0  # For ONNX evaluation
+      - onnxruntime-gpu>=1.12.0  # For model optimization
+    
+    development:
+      - pytest>=7.0.0
+      - black>=22.0.0
+      - flake8>=4.0.0
+
+  javascript:
+    chrome_apis:
+      - chrome.runtime
+      - chrome.tabs
+      - chrome.storage
+      - chrome.scripting
+    
+    external_libraries:
+      - none  # Vanilla JS implementation
+
+services:
+  flask_backend:
+    host: localhost
+    port: 5000
+    endpoints:
+      - /ocr
+      - /validate
+      - /health
+    cors_enabled: true
+    gpu_acceleration: true
+  
+  ocr_engine:
+    engine: PaddleOCR
+    language: en
+    device: gpu
+    confidence_threshold: 0.96
+    fallback: manual_review
+
+chrome_extension:
+  manifest_version: 3
+  components:
+    - content_scripts
+    - background_service_worker
+    - popup_interface
+    - options_page
+  
+  permissions:
+    - activeTab
+    - storage
+    - scripting
+  
+  host_permissions:
+    - "https://app.crowdmark.com/*"
+    - "http://localhost:5000/*"
+
+features:
+  core:
+    - student_id_ocr
+    - database_matching
+    - error_correction_hamming
+    - automated_form_filling
+    - confidence_scoring
+    - manual_review_workflow
+  
+  experimental:
+    - ai_feedback_generation
+    - llm_api_integration
+  
+  future:
+    - onnx_deployment
+    - specialized_digit_recognition
+
+data_processing:
+  ocr:
+    input_format: png
+    preprocessing: crop_to_id_region
+    model: PaddleOCR_en_v3
+    batch_processing: false
+  
+  validation:
+    method: hamming_distance
+    max_edit_distance: 2
+    database_source: student_roster
+  
+  logging:
+    level: INFO
+    components:
+      - ocr_processing
+      - id_matching
+      - form_automation
+      - error_handling
+
+performance:
+  targets:
+    ocr_accuracy: ">96%"
+    processing_time: "<500ms per image"
+    match_confidence: ">0.95"
+  
+  optimization:
+    gpu_acceleration: enabled
+    model_size: "20MB (CRNN preferred)"
+    inference_time: "10ms target"
+
+compliance:
+  platform_tos: crowdmark
+  supervision_required: true
+  disclaimer_shown: true
+  data_privacy: student_data_protected
+  academic_integrity: maintained
+
+deployment:
+  chrome_web_store:
+    status: private_development
+    target: institutional_use
+  
+  backend_hosting:
+    local_development: flask_server
+    production_consideration: cloud_service
+  
+  access_control:
+    user_type: teaching_assistants
+    authentication: session_based
+
+market_targets:
+  primary:
+    - stem_courses
+    - large_enrollment_classes
+    - institutions_using_crowdmark
+  
+  expansion:
+    - international_english_language_education
+    - asian_education_markets
+
+development:
+  git:
+    workflow: feature_branches
+    main_branch: main
+    testing_required: true
+  
+  testing:
+    unit_tests: component_level
+    integration_tests: end_to_end_workflow
+    validation: real_world_data
+  
+  documentation:
+    readme: required
+    api_docs: required
+    user_guide: required
+
+notes:
+  - System requires GPU for optimal PaddleOCR performance
+  - Tesseract OCR not suitable for handwritten documents (0% accuracy observed)
+  - CRNN architecture preferred over Transformers for digit recognition
+  - Manual review workflow essential for edge cases
+  - Post-graduation access strategy needed for continued development
